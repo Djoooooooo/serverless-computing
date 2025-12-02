@@ -6,7 +6,6 @@ const App = () => {
     const [error, setError] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('initializing');
 
-    // 🛡️ MODE SECOURS : Citations locales si le serveur ne répond pas
     const getFallbackQuote = () => {
         const fallbackQuotes = [
             { text: "La seule façon de faire du bon travail est d'aimer ce que vous faites.", author: "Steve Jobs", category: "Travail" },
@@ -18,11 +17,8 @@ const App = () => {
         return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
     };
 
-    // 🚀 FONCTION SERVERLESS RÉELLE - Appel à notre backend
     const fetchQuoteFromServerless = async () => {
         try {
-            // En développement local : http://localhost:5173/api/generate-quote
-            // En production Vercel : https://votre-app.vercel.app/api/generate-quote
             const response = await fetch("/api/generate-quote", {
                 method: "POST",
                 headers: {
@@ -30,10 +26,8 @@ const App = () => {
                 }
             });
 
-            // Vérification du type de contenu
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-                console.warn("⚠️ API non détectée, passage en mode secours.");
                 setConnectionStatus('demo');
                 return getFallbackQuote();
             }
@@ -46,13 +40,11 @@ const App = () => {
             setConnectionStatus('connected');
             return data;
         } catch (err) {
-            console.warn("⚠️ Erreur connexion, passage en mode secours:", err);
             setConnectionStatus('demo');
             return getFallbackQuote();
         }
     };
 
-    // Charger une nouvelle citation
     const loadNewQuote = async () => {
         setLoading(true);
         setError(null);
@@ -60,9 +52,7 @@ const App = () => {
         try {
             const newQuote = await fetchQuoteFromServerless();
             setQuote(newQuote);
-            // Le statut est géré dans fetchQuoteFromServerless
         } catch (err) {
-            // Ce bloc ne devrait plus être atteint grâce au fallback, mais par sécurité :
             setQuote(getFallbackQuote());
             setConnectionStatus('demo');
         } finally {
@@ -70,7 +60,6 @@ const App = () => {
         }
     };
 
-    // Partager la citation
     const shareQuote = () => {
         if (!quote) return;
 
@@ -88,17 +77,14 @@ const App = () => {
         }
     };
 
-    // Charger la première citation au démarrage
     useEffect(() => {
         loadNewQuote();
     }, []);
 
     return (
         <div style={styles.container}>
-            {/* Pattern de fond */}
             <div style={styles.backgroundPattern}></div>
 
-            {/* Container principal - Carte de citation */}
             <div style={styles.mainCard}>
                 <div style={styles.quoteIcon}>"</div>
 
@@ -144,7 +130,6 @@ const App = () => {
     );
 };
 
-// Styles inline
 const styles = {
     container: {
         minHeight: '100vh',
@@ -264,7 +249,6 @@ const styles = {
     },
 };
 
-// Ajouter les animations CSS
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   @keyframes spin {
