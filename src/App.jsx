@@ -6,6 +6,18 @@ const App = () => {
     const [error, setError] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('initializing');
 
+    // 🛡️ MODE SECOURS : Citations locales si le serveur ne répond pas
+    const getFallbackQuote = () => {
+        const fallbackQuotes = [
+            { text: "La seule façon de faire du bon travail est d'aimer ce que vous faites.", author: "Steve Jobs", category: "Travail" },
+            { text: "Le succès, c'est d'aller d'échec en échec sans perdre son enthousiasme.", author: "Winston Churchill", category: "Succès" },
+            { text: "La vie, c'est comme une bicyclette, il faut avancer pour ne pas perdre l'équilibre.", author: "Albert Einstein", category: "Vie" },
+            { text: "Ils ne savaient pas que c'était impossible, alors ils l'ont fait.", author: "Mark Twain", category: "Audace" },
+            { text: "La meilleure façon de prédire l'avenir est de le créer.", author: "Peter Drucker", category: "Avenir" }
+        ];
+        return fallbackQuotes[Math.floor(Math.random() * fallbackQuotes.length)];
+    };
+
     // 🚀 FONCTION SERVERLESS RÉELLE - Appel à notre backend
     const fetchQuoteFromServerless = async () => {
         try {
@@ -18,16 +30,25 @@ const App = () => {
                 }
             });
 
+            // Vérification du type de contenu
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.warn("⚠️ API non détectée, passage en mode secours.");
+                setConnectionStatus('demo');
+                return getFallbackQuote();
+            }
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Erreur HTTP: ${response.status}`);
+                throw new Error(`Erreur HTTP: ${response.status}`);
             }
 
             const data = await response.json();
+            setConnectionStatus('connected');
             return data;
         } catch (err) {
-            console.error("❌ Erreur fonction serverless:", err);
-            throw err;
+            console.warn("⚠️ Erreur connexion, passage en mode secours:", err);
+            setConnectionStatus('demo');
+            return getFallbackQuote();
         }
     };
 
@@ -39,10 +60,11 @@ const App = () => {
         try {
             const newQuote = await fetchQuoteFromServerless();
             setQuote(newQuote);
-            setConnectionStatus('connected');
+            // Le statut est géré dans fetchQuoteFromServerless
         } catch (err) {
-            setError(err.message || "Erreur lors du chargement de la citation");
-            setConnectionStatus('error');
+            // Ce bloc ne devrait plus être atteint grâce au fallback, mais par sécurité :
+            setQuote(getFallbackQuote());
+            setConnectionStatus('demo');
         } finally {
             setLoading(false);
         }
@@ -100,8 +122,9 @@ const App = () => {
                 }}></span>
                 <span style={styles.statusText}>
                     {connectionStatus === 'connected' ? '✅ Serverless API Active' :
-                        connectionStatus === 'error' ? '❌ Erreur de connexion' :
-                            '⏳ Initialisation...'}
+                        connectionStatus === 'demo' ? '⚠️ Mode Démo (Local)' :
+                            connectionStatus === 'error' ? '❌ Erreur de connexion' :
+                                '⏳ Initialisation...'}
                 </span>
             </div>
 
